@@ -5,13 +5,13 @@ import { InertiaPlugin } from 'gsap/InertiaPlugin';
 
 gsap.registerPlugin(InertiaPlugin);
 
-const throttle = (func: (...args: any[]) => void, limit: number) => {
+const throttle = <Args extends unknown[]>(func: (...args: Args) => void, limit: number) => {
   let lastCall = 0;
-  return function (this: any, ...args: any[]) {
+  return (...args: Args) => {
     const now = performance.now();
     if (now - lastCall >= limit) {
       lastCall = now;
-      func.apply(this, args);
+      func(...args);
     }
   };
 };
@@ -180,7 +180,7 @@ const DotGrid: React.FC<DotGridProps> = ({
     let ro: ResizeObserver | null = null;
     if ('ResizeObserver' in window) {
       ro = new ResizeObserver(buildGrid);
-      wrapperRef.current && ro.observe(wrapperRef.current);
+      if (wrapperRef.current) ro.observe(wrapperRef.current);
     } else {
       (window as Window).addEventListener('resize', buildGrid);
     }

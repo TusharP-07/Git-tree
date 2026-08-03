@@ -16,7 +16,7 @@ const IGNORED_EXTENSIONS = [
 ];
 
 function isIgnored(path: string): boolean {
-  const matchesPattern = IGNORED_PATTERNS.some((pattern) => path.includes(pattern));
+  const matchesPattern = path.split("/").some((segment) => IGNORED_PATTERNS.includes(segment));
   const ext = path.split(".").pop()?.toLowerCase() || "";
   const matchesExtension = IGNORED_EXTENSIONS.includes(ext);
   return matchesPattern || matchesExtension;
@@ -44,7 +44,6 @@ export function buildTreeGraph(
   // Sort so parent folders are processed before children
   filtered.sort((a, b) => a.path.split("/").length - b.path.split("/").length);
 
-  let yCounter = 0;
   const levelCounts: Record<number, number> = {};
 
   filtered.forEach((item) => {

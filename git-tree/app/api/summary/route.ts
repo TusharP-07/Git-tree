@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { fetchFileContent } from "@/lib/github";
+import { isRateLimited } from "@/lib/rateLimit";
+import { isSafeRepositoryPath, isValidRepository } from "@/lib/validation";
 
 const GEMINI_API_URL =
   "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
@@ -11,7 +13,13 @@ export async function POST(request: NextRequest) {
   try {
     const { owner, repo, path } = await request.json();
 
-    if (!owner || !repo || !path) {
+    if (
+      typeof owner !== "string" ||
+      typeof repo !== "string" ||
+      typeof path !== "string" ||
+      !isValidRepository(owner, repo) ||
+      !isSafeRepositoryPath(path)
+    ) {
       return NextResponse.json(
         { error: "Missing owner, repo, or path" },
         { status: 400 }
@@ -20,6 +28,21 @@ export async function POST(request: NextRequest) {
 
     const session = await auth();
     const accessToken = session?.accessToken;
+    if (!accessToken) {
+      return NextResponse.json({ error: "Sign in to generate AI summaries" }, { status: 401 });
+    }
+
+    const rateLimitKey = session.user?.email || session.user?.name || accessToken;
+    if (isRateLimited(rateLimitKey, 20, 60 * 60 * 1000)) {
+      return NextResponse.json(
+        { error: "Summary limit reached. Please try again in an hour." },
+        { status: 429 }
+      );
+    }
+
+    if (!process.env.GEMINI_API_KEY) {
+      return NextResponse.json({ error: "AI summaries are not configured" }, { status: 503 });
+    }
 
     const content = await fetchFileContent(owner, repo, path, accessToken);
     const truncated = content.slice(0, MAX_CONTENT_CHARS);

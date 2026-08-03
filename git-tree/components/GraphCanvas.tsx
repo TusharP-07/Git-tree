@@ -39,7 +39,6 @@ export default function GraphCanvas({ nodes, edges, onNodeClick }: GraphCanvasPr
   }, [sortedByDepth]);
 
   useEffect(() => {
-    setVisibleCount(0);
     if (depthLevels.length === 0) return;
 
     let level = 0;

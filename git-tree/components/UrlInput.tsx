@@ -30,7 +30,7 @@ export default function UrlInput() {
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           placeholder="https://github.com/facebook/react"
-          className="flex-1 rounded-md border border-gray-300 px-4 py-2.5 text-sm focus:border-brand focus:outline-none"
+          className="flex-1 rounded-md border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:placeholder:text-gray-500"
         />
         <button
           type="submit"
