@@ -23,23 +23,25 @@ export default function UrlInput() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="w-full max-w-xl">
-      <div className="flex gap-2">
+    <form onSubmit={handleSubmit} className="mx-auto w-full max-w-xl text-left">
+      <label htmlFor="repository-url" className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200">GitHub repository URL</label>
+      <div className="flex flex-col gap-3 sm:flex-row">
         <input
+          id="repository-url"
           type="text"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           placeholder="https://github.com/facebook/react"
-          className="flex-1 rounded-md border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:placeholder:text-gray-500"
+          className="min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-950 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/15 dark:border-white/10 dark:bg-slate-950/60 dark:text-white dark:placeholder:text-slate-500 dark:focus:border-indigo-400 dark:focus:ring-indigo-400/20"
         />
         <button
           type="submit"
-          className="rounded-md bg-brand px-5 py-2.5 text-sm font-medium text-white hover:bg-brand/90"
+          className="rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-600/25 transition hover:-translate-y-0.5 hover:from-indigo-500 hover:to-violet-500 hover:shadow-indigo-500/35 focus:outline-none focus:ring-4 focus:ring-indigo-500/30"
         >
           Visualize
         </button>
       </div>
-      {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+      {error && <p className="mt-3 text-sm text-rose-600 dark:text-rose-300">{error}</p>}
     </form>
   );
 }

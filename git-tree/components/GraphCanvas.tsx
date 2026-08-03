@@ -95,7 +95,7 @@ export default function GraphCanvas({ nodes, edges, onNodeClick }: GraphCanvasPr
   );
 
   return (
-    <div className="h-full w-full">
+    <div className="graph-surface h-full w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl shadow-slate-950/5 dark:border-white/10 dark:bg-[#11172a] dark:shadow-black/30">
       <ReactFlow
         nodes={animatedNodes}
         edges={animatedEdges}
@@ -104,9 +104,9 @@ export default function GraphCanvas({ nodes, edges, onNodeClick }: GraphCanvasPr
         fitView
         minZoom={0.1}
       >
-        <Background />
+        <Background color="var(--graph-grid)" gap={20} size={1} />
         <Controls />
-        <MiniMap />
+        <MiniMap maskColor="var(--graph-minimap-mask)" />
       </ReactFlow>
     </div>
   );

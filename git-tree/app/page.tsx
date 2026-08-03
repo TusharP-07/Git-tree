@@ -6,8 +6,8 @@ import AnimatedContent from "@/components/AnimatedContent";
 
 export default function HomePage() {
   return (
-    <div className="relative flex min-h-screen flex-col overflow-hidden">
-      <div className="absolute inset-0 -z-10">
+    <div className="home-page relative flex min-h-screen flex-col overflow-hidden bg-slate-50 dark:bg-[#090b14]">
+      <div className="absolute inset-0 -z-10 opacity-70 dark:opacity-35">
         <DotGrid
           dotSize={3}
           gap={28}
@@ -19,23 +19,26 @@ export default function HomePage() {
 
       <Navbar />
 
-      <main className="flex flex-1 flex-col items-center justify-center gap-6 px-4">
-        <BlurText
-          text="RepoGraph"
-          className="text-4xl font-bold text-gray-900 justify-center dark:text-gray-100"
-          delay={120}
-          animateBy="letters"
-        />
-
-        <AnimatedContent distance={40} duration={0.6} delay={0.4}>
-          <p className="text-center text-gray-500 dark:text-gray-400">
-            Paste a GitHub repository URL to visualize its structure
-          </p>
-        </AnimatedContent>
-
-        <AnimatedContent distance={40} duration={0.6} delay={0.6}>
-          <UrlInput />
-        </AnimatedContent>
+      <main className="relative z-10 flex flex-1 items-center justify-center px-4 py-16 sm:py-24">
+        <section className="w-full max-w-3xl rounded-3xl border border-white/70 bg-white/75 px-6 py-12 text-center shadow-2xl shadow-indigo-950/10 backdrop-blur-xl sm:px-12 dark:border-white/10 dark:bg-[#11172a]/80 dark:shadow-black/40">
+          <AnimatedContent distance={32} duration={0.6}>
+            <p className="mb-4 text-sm font-semibold uppercase tracking-[0.22em] text-indigo-600 dark:text-indigo-300">Repository explorer</p>
+          </AnimatedContent>
+          <BlurText
+            text="See your codebase clearly."
+            className="justify-center text-4xl font-bold tracking-tight text-slate-950 dark:text-white sm:text-5xl"
+            delay={60}
+            animateBy="letters"
+          />
+          <AnimatedContent distance={32} duration={0.6} delay={0.25}>
+            <p className="mx-auto mt-5 max-w-xl text-base leading-7 text-slate-600 dark:text-slate-300">
+              Paste a GitHub repository URL to map its structure and understand how its files connect.
+            </p>
+          </AnimatedContent>
+          <AnimatedContent distance={32} duration={0.6} delay={0.4}>
+            <div className="mt-9"><UrlInput /></div>
+          </AnimatedContent>
+        </section>
       </main>
     </div>
   );

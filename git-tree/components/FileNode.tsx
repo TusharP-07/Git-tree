@@ -20,7 +20,7 @@ function FileNode({ data }: NodeProps<FileNodeData>) {
 
   return (
     <div
-      className="rounded-md border bg-white px-3 py-2 text-xs shadow-sm dark:bg-gray-900"
+      className="rounded-xl border bg-white px-3 py-2 text-xs shadow-md shadow-slate-900/5 dark:bg-[#18213a] dark:shadow-black/20"
       style={{ borderColor: color, minWidth: 120 }}
     >
       <Handle type="target" position={Position.Top} />
@@ -29,7 +29,7 @@ function FileNode({ data }: NodeProps<FileNodeData>) {
           className="h-2 w-2 flex-shrink-0 rounded-full"
           style={{ backgroundColor: color }}
         />
-        <span className="truncate font-medium text-gray-800 dark:text-gray-100">{data.label}</span>
+        <span className="truncate font-medium text-slate-800 dark:text-slate-100">{data.label}</span>
       </div>
       <Handle type="source" position={Position.Bottom} />
     </div>

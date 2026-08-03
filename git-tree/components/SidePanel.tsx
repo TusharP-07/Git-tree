@@ -58,14 +58,14 @@ export default function SidePanel({ filePath, owner, repo, onClose }: SidePanelP
   if (!filePath) return null;
 
   return (
-    <aside className="fixed right-0 top-0 h-full w-80 border-l border-gray-200 bg-white p-5 shadow-lg dark:border-gray-800 dark:bg-gray-950">
-      <div className="mb-4 flex items-start justify-between">
-        <h3 className="break-all text-sm font-semibold text-gray-800 dark:text-gray-100">{filePath}</h3>
-        <button type="button" onClick={onClose} aria-label="Close summary" className="ml-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">×</button>
+    <aside className="fixed bottom-3 right-3 top-3 z-30 w-[min(22rem,calc(100vw-1.5rem))] overflow-y-auto rounded-2xl border border-slate-200 bg-white/95 p-5 shadow-2xl shadow-slate-950/15 backdrop-blur-xl dark:border-white/10 dark:bg-[#121a2e]/95 dark:shadow-black/40">
+      <div className="mb-4 flex items-start justify-between gap-3">
+        <h3 className="break-all text-sm font-semibold text-slate-800 dark:text-slate-100">{filePath}</h3>
+        <button type="button" onClick={onClose} aria-label="Close summary" className="rounded-lg p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-white/10 dark:hover:text-slate-100">&times;</button>
       </div>
-      {loading && <div className="space-y-2"><div className="h-3 w-full animate-pulse rounded bg-gray-200 dark:bg-gray-800" /><div className="h-3 w-5/6 animate-pulse rounded bg-gray-200 dark:bg-gray-800" /><div className="h-3 w-4/6 animate-pulse rounded bg-gray-200 dark:bg-gray-800" /></div>}
-      {error && <p className="text-sm text-red-600">{error}</p>}
-      {!loading && summary && <p className="text-sm leading-relaxed text-gray-700 dark:text-gray-300">{summary}</p>}
+      {loading && <div className="space-y-3"><div className="h-3 w-full animate-pulse rounded bg-slate-200 dark:bg-white/10" /><div className="h-3 w-5/6 animate-pulse rounded bg-slate-200 dark:bg-white/10" /><div className="h-3 w-4/6 animate-pulse rounded bg-slate-200 dark:bg-white/10" /></div>}
+      {error && <p className="text-sm text-rose-600 dark:text-rose-300">{error}</p>}
+      {!loading && summary && <p className="text-sm leading-relaxed text-slate-700 dark:text-slate-300">{summary}</p>}
     </aside>
   );
 }

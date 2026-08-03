@@ -94,16 +94,19 @@ export default function GraphPage() {
   const handleNodeClick = useCallback((path: string) => setSelectedFile(path), []);
 
   return (
-    <div className="flex h-screen flex-col">
+    <div className="flex h-screen flex-col bg-slate-50 dark:bg-[#090b14]">
       <Navbar />
-      <div className="flex items-center justify-between border-b border-gray-200 px-6 py-3 dark:border-gray-800">
-        <h2 className="text-sm font-medium text-gray-700 dark:text-gray-200">{owner}/{repo}</h2>
+      <div className="flex flex-col gap-3 border-b border-slate-200/80 bg-white/60 px-4 py-4 backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between sm:px-6 dark:border-white/10 dark:bg-[#0c1120]/70">
+        <div className="min-w-0">
+          <p className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-indigo-600 dark:text-indigo-300">Repository graph</p>
+          <h2 className="truncate text-sm font-semibold text-slate-800 dark:text-slate-100">{owner}/{repo}</h2>
+        </div>
         <ModeToggle mode={mode} onChange={setMode} />
       </div>
-      <div className="relative flex-1">
+      <div className="relative flex-1 p-3 sm:p-5">
         {loading && <LoadingSpinner text={`Loading ${mode} view...`} />}
-        {error && <p className="p-6 text-sm text-red-600">{error}</p>}
-        {notice && <p className="border-b border-amber-200 bg-amber-50 px-6 py-2 text-sm text-amber-800">{notice}</p>}
+        {error && <p className="rounded-2xl border border-rose-200 bg-rose-50 p-5 text-sm text-rose-700 dark:border-rose-400/20 dark:bg-rose-500/10 dark:text-rose-200">{error}</p>}
+        {notice && <p className="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-300/20 dark:bg-amber-400/10 dark:text-amber-100">{notice}</p>}
         {!loading && !error && <GraphCanvas key={`${mode}:${owner}:${repo}:${nodes.length}:${edges.length}`} nodes={nodes} edges={edges} onNodeClick={handleNodeClick} />}
         <SidePanel filePath={selectedFile} owner={owner} repo={repo} onClose={() => setSelectedFile(null)} />
       </div>

@@ -35,7 +35,7 @@ export default function ThemeToggle() {
       onClick={toggleTheme}
       aria-label={mounted && isDark ? "Switch to light mode" : "Switch to dark mode"}
       title={mounted && isDark ? "Switch to light mode" : "Switch to dark mode"}
-      className="rounded-md border border-gray-300 p-2 text-gray-700 transition hover:bg-gray-100 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
+      className="rounded-lg border border-slate-300 bg-white/70 p-2 text-slate-700 shadow-sm transition hover:bg-slate-100 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10"
     >
       {mounted && isDark ? (
         <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4 fill-none stroke-current stroke-2">
