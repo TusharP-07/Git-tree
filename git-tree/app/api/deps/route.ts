@@ -6,6 +6,27 @@ import { isValidRepository } from "@/lib/validation";
 
 const SUPPORTED_EXTENSIONS = ["js", "jsx", "ts", "tsx", "py"];
 const MAX_FILES_TO_PARSE = 60;
+const MAX_PUBLIC_FILES_TO_PARSE = 25;
+const CONTENT_FETCH_CONCURRENCY = 5;
+
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  limit: number,
+  mapper: (item: T) => Promise<R>
+): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let nextIndex = 0;
+
+  async function worker() {
+    while (nextIndex < items.length) {
+      const index = nextIndex++;
+      results[index] = await mapper(items[index]);
+    }
+  }
+
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+  return results;
+}
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -26,10 +47,16 @@ export async function GET(request: NextRequest) {
       const extension = item.path.split(".").pop()?.toLowerCase() || "";
       return SUPPORTED_EXTENSIONS.includes(extension);
     });
-    const sourceFiles = allSourceFiles.slice(0, MAX_FILES_TO_PARSE);
+    // GitHub grants only 60 requests/hour to anonymous clients. Leave headroom
+    // for loading the repository and tree, while signed-in users retain the
+    // larger analysis limit.
+    const fileLimit = accessToken ? MAX_FILES_TO_PARSE : MAX_PUBLIC_FILES_TO_PARSE;
+    const sourceFiles = allSourceFiles.slice(0, fileLimit);
 
-    const edgeLists = await Promise.all(
-      sourceFiles.map(async (file) => {
+    const edgeLists = await mapWithConcurrency(
+      sourceFiles,
+      CONTENT_FETCH_CONCURRENCY,
+      async (file) => {
         try {
           const content = await fetchFileContent(owner, repo, file.path, accessToken);
           const extension = file.path.split(".").pop()?.toLowerCase() || "";
@@ -41,7 +68,7 @@ export async function GET(request: NextRequest) {
           console.error(`[deps] Could not analyze ${file.path}:`, error);
           return [];
         }
-      })
+      }
     );
 
     const edges = [...new Map(edgeLists.flat().map((edge) => [`${edge.source}->${edge.target}`, edge])).values()];

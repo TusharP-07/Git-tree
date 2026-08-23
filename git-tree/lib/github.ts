@@ -2,6 +2,16 @@ import type { GitTreeItem } from "@/types";
 import { isSafeRepositoryPath, isValidRepository } from "@/lib/validation";
 
 const GITHUB_API = "https://api.github.com";
+const PUBLIC_REVALIDATE_SECONDS = 300;
+
+function githubFetchOptions(headers: Record<string, string>, accessToken?: string): RequestInit {
+  // Authenticated responses are user-specific and must not enter the shared data cache.
+  if (accessToken) return { headers, cache: "no-store" };
+
+  // Public repository data is safe to reuse briefly. This keeps view changes from
+  // repeatedly consuming GitHub's low unauthenticated API allowance.
+  return { headers, next: { revalidate: PUBLIC_REVALIDATE_SECONDS } };
+}
 
 export function parseGitHubUrl(url: string): { owner: string; repo: string } | null {
   try {
@@ -50,7 +60,8 @@ export async function fetchRepoTree(
   }
 
   const repoUrl = repositoryUrl(owner, repo);
-  const repoRes = await fetch(repoUrl, { headers, cache: "no-store" });
+  const fetchOptions = githubFetchOptions(headers, accessToken);
+  const repoRes = await fetch(repoUrl, fetchOptions);
   if (!repoRes.ok) {
     throw new Error(`Repository not found or inaccessible (${repoRes.status})`);
   }
@@ -59,7 +70,7 @@ export async function fetchRepoTree(
 
   const treeRes = await fetch(
     `${repoUrl}/git/trees/${encodeURIComponent(branch)}?recursive=1`,
-    { headers, cache: "no-store" }
+    fetchOptions
   );
   if (!treeRes.ok) {
     throw new Error(`Failed to fetch repository tree (${treeRes.status})`);
@@ -84,7 +95,7 @@ export async function fetchFileContent(
 
   const res = await fetch(
     `${repositoryUrl(owner, repo)}/contents/${contentPath(path)}`,
-    { headers, cache: "no-store" }
+    githubFetchOptions(headers, accessToken)
   );
 
   if (!res.ok) {

@@ -30,6 +30,7 @@ export default function GraphPage() {
   const [mode, setMode] = useState<"tree" | "dependency">("tree");
   const [nodes, setNodes] = useState<Node<FileNodeData>[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
+  const [graphs, setGraphs] = useState<Partial<Record<"tree" | "dependency", { nodes: Node<FileNodeData>[]; edges: Edge[]; notice: string }>>>({});
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -39,6 +40,16 @@ export default function GraphPage() {
     const controller = new AbortController();
 
     async function loadGraph() {
+      const cachedGraph = graphs[mode];
+      if (cachedGraph) {
+        setNodes(cachedGraph.nodes);
+        setEdges(cachedGraph.edges);
+        setNotice(cachedGraph.notice);
+        setError("");
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       setError("");
       setNotice("");
@@ -56,7 +67,9 @@ export default function GraphPage() {
           const graph = buildTreeGraph(tree);
           setNodes(graph.nodes);
           setEdges(graph.edges);
-          if (truncated) setNotice("GitHub returned a partial file tree because this repository is very large.");
+          const treeNotice = truncated ? "GitHub returned a partial file tree because this repository is very large." : "";
+          setNotice(treeNotice);
+          setGraphs((current) => ({ ...current, tree: { ...graph, notice: treeNotice } }));
           return;
         }
 
@@ -76,9 +89,11 @@ export default function GraphPage() {
         const graph = layoutGraph(dependencyNodes, dependencyEdges, "TB");
         setNodes(graph.nodes);
         setEdges(graph.edges);
-        if (dependencyData.treeTruncated || dependencyData.analyzedFiles < dependencyData.totalSourceFiles) {
-          setNotice(`This dependency view analyzes ${dependencyData.analyzedFiles} of ${dependencyData.totalSourceFiles} source files and may be incomplete.`);
-        }
+        const dependencyNotice = dependencyData.treeTruncated || dependencyData.analyzedFiles < dependencyData.totalSourceFiles
+          ? `This dependency view analyzes ${dependencyData.analyzedFiles} of ${dependencyData.totalSourceFiles} source files and may be incomplete.`
+          : "";
+        setNotice(dependencyNotice);
+        setGraphs((current) => ({ ...current, dependency: { ...graph, notice: dependencyNotice } }));
       } catch (loadError) {
         if (loadError instanceof DOMException && loadError.name === "AbortError") return;
         setError(loadError instanceof Error ? loadError.message : "Could not load this repository");
@@ -89,7 +104,7 @@ export default function GraphPage() {
 
     void loadGraph();
     return () => controller.abort();
-  }, [owner, repo, mode]);
+  }, [owner, repo, mode, graphs]);
 
   const handleNodeClick = useCallback((path: string) => setSelectedFile(path), []);
 
