@@ -122,7 +122,7 @@ export default function GraphPage() {
         {loading && <LoadingSpinner text={`Loading ${mode} view...`} />}
         {error && <p className="rounded-2xl border border-rose-200 bg-rose-50 p-5 text-sm text-rose-700 dark:border-rose-400/20 dark:bg-rose-500/10 dark:text-rose-200">{error}</p>}
         {notice && <p className="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-300/20 dark:bg-amber-400/10 dark:text-amber-100">{notice}</p>}
-        {!loading && !error && <GraphCanvas key={`${mode}:${owner}:${repo}:${nodes.length}:${edges.length}`} nodes={nodes} edges={edges} onNodeClick={handleNodeClick} />}
+        {!loading && !error && <GraphCanvas key={`${mode}:${owner}:${repo}:${nodes.length}:${edges.length}`} nodes={nodes} edges={edges} mode={mode} onNodeClick={handleNodeClick} />}
         <SidePanel filePath={selectedFile} owner={owner} repo={repo} onClose={() => setSelectedFile(null)} />
       </div>
     </div>

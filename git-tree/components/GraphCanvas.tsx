@@ -16,16 +16,18 @@ import { layoutGraph } from "@/lib/layoutGraph";
 interface GraphCanvasProps {
   nodes: Node<FileNodeData>[];
   edges: Edge[];
+  mode: "tree" | "dependency";
   onNodeClick: (path: string) => void;
 }
 
 const nodeTypes = { fileNode: FileNode };
 const REVEAL_STEP_MS = 80; // delay between each depth level appearing
 
-export default function GraphCanvas({ nodes, edges, onNodeClick }: GraphCanvasProps) {
+export default function GraphCanvas({ nodes, edges, mode, onNodeClick }: GraphCanvasProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState(0);
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
+  const isTreeView = mode === "tree";
 
   const folderIds = useMemo(
     () => nodes.filter((node) => node.data.fileType === "tree").map((node) => node.id),
@@ -33,11 +35,13 @@ export default function GraphCanvas({ nodes, edges, onNodeClick }: GraphCanvasPr
   );
 
   const visibleTreeNodes = useMemo(() => {
+    if (!isTreeView) return nodes;
+
     return nodes.filter((node) => {
       const ancestors = node.id.split("/").slice(0, -1);
       return ancestors.every((_, index) => expandedFolders.has(ancestors.slice(0, index + 1).join("/")));
     });
-  }, [nodes, expandedFolders]);
+  }, [nodes, expandedFolders, isTreeView]);
 
   const visibleTreeNodeIds = useMemo(() => new Set(visibleTreeNodes.map((node) => node.id)), [visibleTreeNodes]);
 
@@ -51,10 +55,10 @@ export default function GraphCanvas({ nodes, edges, onNodeClick }: GraphCanvasPr
       ...node,
       data: {
         ...node.data,
-        expanded: expandedFolders.has(node.id),
+        expanded: isTreeView && expandedFolders.has(node.id),
       },
     })),
-    [expandedFolders, laidOutGraph.nodes]
+    [expandedFolders, isTreeView, laidOutGraph.nodes]
   );
 
   // Group nodes by depth (y position) so whole "levels" appear together
@@ -120,7 +124,7 @@ export default function GraphCanvas({ nodes, edges, onNodeClick }: GraphCanvasPr
 
   const handleNodeClick = useCallback(
     (_event: React.MouseEvent, node: Node<FileNodeData>) => {
-      if (node.data.fileType === "tree") {
+      if (isTreeView && node.data.fileType === "tree") {
         setExpandedFolders((current) => {
           const next = new Set(current);
           if (next.has(node.id)) next.delete(node.id);
@@ -132,7 +136,7 @@ export default function GraphCanvas({ nodes, edges, onNodeClick }: GraphCanvasPr
       setSelectedId(node.id);
       onNodeClick(node.data.fullPath);
     },
-    [onNodeClick]
+    [isTreeView, onNodeClick]
   );
 
   const expandAll = useCallback(() => setExpandedFolders(new Set(folderIds)), [folderIds]);
@@ -143,13 +147,19 @@ export default function GraphCanvas({ nodes, edges, onNodeClick }: GraphCanvasPr
       <div className="absolute left-4 top-4 z-10 max-w-[calc(100%-2rem)] rounded-xl border border-slate-200 bg-white/95 px-3 py-2 shadow-lg backdrop-blur dark:border-white/10 dark:bg-slate-900/95">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
           <div>
-            <p className="text-xs font-semibold text-slate-800 dark:text-slate-100">Folder-first view</p>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400">Click a folder to show or hide its contents · {visibleTreeNodes.length} of {nodes.length} items visible</p>
+            <p className="text-xs font-semibold text-slate-800 dark:text-slate-100">{isTreeView ? "Folder-first view" : "Dependency view"}</p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+              {isTreeView
+                ? `Click a folder to show or hide its contents · ${visibleTreeNodes.length} of ${nodes.length} items visible`
+                : `${nodes.length} analyzed files · lines show detected imports`}
+            </p>
           </div>
-          <div className="flex gap-1.5">
-            <button type="button" onClick={expandAll} className="rounded-md bg-indigo-600 px-2 py-1 text-[11px] font-semibold text-white hover:bg-indigo-500">Expand all</button>
-            <button type="button" onClick={collapseAll} className="rounded-md border border-slate-200 px-2 py-1 text-[11px] font-semibold text-slate-600 hover:bg-slate-50 dark:border-white/15 dark:text-slate-300 dark:hover:bg-white/10">Collapse all</button>
-          </div>
+          {isTreeView && (
+            <div className="flex gap-1.5">
+              <button type="button" onClick={expandAll} className="rounded-md bg-indigo-600 px-2 py-1 text-[11px] font-semibold text-white hover:bg-indigo-500">Expand all</button>
+              <button type="button" onClick={collapseAll} className="rounded-md border border-slate-200 px-2 py-1 text-[11px] font-semibold text-slate-600 hover:bg-slate-50 dark:border-white/15 dark:text-slate-300 dark:hover:bg-white/10">Collapse all</button>
+            </div>
+          )}
         </div>
       </div>
       <ReactFlow
