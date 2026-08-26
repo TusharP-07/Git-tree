@@ -10,6 +10,8 @@ export interface FileNodeData {
   fullPath: string;
   fileType: "blob" | "tree";
   extension: string;
+  childCount?: number;
+  expanded?: boolean;
 }
 
 export interface SummaryResponse {

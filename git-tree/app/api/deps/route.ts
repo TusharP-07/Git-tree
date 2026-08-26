@@ -6,7 +6,7 @@ import { isValidRepository } from "@/lib/validation";
 
 const SUPPORTED_EXTENSIONS = ["js", "jsx", "ts", "tsx", "py"];
 const MAX_FILES_TO_PARSE = 60;
-const MAX_PUBLIC_FILES_TO_PARSE = 25;
+const MAX_PUBLIC_FILES_TO_PARSE = 60;
 const CONTENT_FETCH_CONCURRENCY = 5;
 
 async function mapWithConcurrency<T, R>(
@@ -47,9 +47,7 @@ export async function GET(request: NextRequest) {
       const extension = item.path.split(".").pop()?.toLowerCase() || "";
       return SUPPORTED_EXTENSIONS.includes(extension);
     });
-    // GitHub grants only 60 requests/hour to anonymous clients. Leave headroom
-    // for loading the repository and tree, while signed-in users retain the
-    // larger analysis limit.
+    // Keep the dependency view consistent for public and signed-in repositories.
     const fileLimit = accessToken ? MAX_FILES_TO_PARSE : MAX_PUBLIC_FILES_TO_PARSE;
     const sourceFiles = allSourceFiles.slice(0, fileLimit);
 

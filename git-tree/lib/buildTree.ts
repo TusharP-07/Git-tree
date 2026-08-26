@@ -44,6 +44,15 @@ export function buildTreeGraph(
   // Sort so parent folders are processed before children
   filtered.sort((a, b) => a.path.split("/").length - b.path.split("/").length);
 
+  const childCounts = new Map<string, number>();
+  filtered.forEach((item) => {
+    const segments = item.path.split("/");
+    if (segments.length < 2) return;
+
+    const parentPath = segments.slice(0, -1).join("/");
+    childCounts.set(parentPath, (childCounts.get(parentPath) || 0) + 1);
+  });
+
   const levelCounts: Record<number, number> = {};
 
   filtered.forEach((item) => {
@@ -67,6 +76,7 @@ export function buildTreeGraph(
         fullPath: item.path,
         fileType: item.type,
         extension: getExtension(label),
+        childCount: item.type === "tree" ? childCounts.get(item.path) || 0 : undefined,
       },
     });
 
