@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import SessionWrapper from "@/components/SessionWrapper";
 import { Geist } from "next/font/google";
@@ -14,7 +15,10 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className={cn("font-sans", geist.variable)}>
-      <body className="bg-gray-50 text-gray-900"><SessionWrapper>{children}</SessionWrapper></body>
+      <body className="bg-gray-50 text-gray-900">
+        <SessionWrapper>{children}</SessionWrapper>
+        <Analytics />
+      </body>
     </html>
   );
 }
