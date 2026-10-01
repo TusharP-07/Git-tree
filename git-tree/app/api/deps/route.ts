@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
     const session = await auth();
     const accessToken = session?.accessToken;
 
-    const rateLimitKey = session?.user?.email || session?.user?.name || accessToken || request.ip || "anonymous";
+    const rateLimitKey = session?.user?.email || session?.user?.name || accessToken || request.headers.get("x-forwarded-for") || "anonymous";
     const { success, headers } = await checkRateLimit(rateLimitKey);
     
     if (!success) {

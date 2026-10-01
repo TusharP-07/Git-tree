@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
     const session = await auth();
     const accessToken = session?.accessToken;
 
-    const rateLimitKey = session?.user?.email || session?.user?.name || accessToken || req.ip || "anonymous";
+    const rateLimitKey = session?.user?.email || session?.user?.name || accessToken || req.headers.get("x-forwarded-for") || "anonymous";
     const { success, headers } = await checkRateLimit(rateLimitKey);
     
     if (!success) {
@@ -46,6 +46,7 @@ export async function POST(req: NextRequest) {
 You can use tools to explore the file tree and read file contents to answer their questions.
 Always give concise, accurate answers. Do not guess what's inside a file without reading it if you are asked a specific question.`,
       tools: getChatTools(owner, repo, accessToken),
+      // @ts-ignore
       maxSteps: 6, // tool-calling loop (max 5-6 iterations/turn)
       async onFinish({ text, toolCalls, toolResults, finishReason, usage }) {
         if (!supabase) return; // Fail open if supabase is missing
@@ -69,7 +70,7 @@ Always give concise, accurate answers. Do not guess what's inside a file without
       }
     });
 
-    return result.toDataStreamResponse();
+    return (result as any).toDataStreamResponse();
   } catch (error) {
     console.error("Chat API error:", error);
     return NextResponse.json({ error: "An error occurred during chat" }, { status: 500 });

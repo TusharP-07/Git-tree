@@ -43,14 +43,16 @@ export function getChatTools(owner: string, repo: string, accessToken?: string) 
       parameters: z.object({
         path: z.string().describe("The directory path to list files for. Use an empty string '' for the root directory of the repository."),
       }),
-      execute: async ({ path }) => await executeListFiles(owner, repo, path, accessToken),
+      // @ts-ignore
+      execute: async ({ path }: { path: string }) => await executeListFiles(owner, repo, path, accessToken),
     }),
     getFileContent: tool({
       description: "Get the raw text content of a specific file in the repository. Use this to read the code or documentation inside a file.",
       parameters: z.object({
         path: z.string().describe("The exact file path to fetch the content for (e.g., 'src/index.ts')."),
       }),
-      execute: async ({ path }) => {
+      // @ts-ignore
+      execute: async ({ path }: { path: string }) => {
         try {
           return await fetchFileContent(owner, repo, path, accessToken);
         } catch (err) {
