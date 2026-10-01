@@ -32,6 +32,7 @@ export default function GraphPage() {
   const [edges, setEdges] = useState<Edge[]>([]);
   const [graphs, setGraphs] = useState<Partial<Record<"tree" | "dependency", { nodes: Node<FileNodeData>[]; edges: Edge[]; notice: string }>>>({});
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
+  const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -106,7 +107,10 @@ export default function GraphPage() {
     return () => controller.abort();
   }, [owner, repo, mode, graphs]);
 
-  const handleNodeClick = useCallback((path: string) => setSelectedFile(path), []);
+  const handleNodeClick = useCallback((path: string) => {
+    setSelectedFile(path);
+    setIsPanelOpen(true);
+  }, []);
 
   return (
     <div className="flex h-screen flex-col bg-slate-50 dark:bg-[#090b14]">
@@ -116,14 +120,29 @@ export default function GraphPage() {
           <p className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-indigo-600 dark:text-indigo-300">Repository graph</p>
           <h2 className="truncate text-sm font-semibold text-slate-800 dark:text-slate-100">{owner}/{repo}</h2>
         </div>
-        <ModeToggle mode={mode} onChange={setMode} />
+        <div className="flex items-center gap-4">
+          <ModeToggle mode={mode} onChange={setMode} />
+          <button 
+            onClick={() => setIsPanelOpen(true)}
+            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600"
+          >
+            Chat with AI
+          </button>
+        </div>
       </div>
       <div className="relative flex-1 p-3 sm:p-5">
         {loading && <LoadingSpinner text={`Loading ${mode} view...`} />}
         {error && <p className="rounded-2xl border border-rose-200 bg-rose-50 p-5 text-sm text-rose-700 dark:border-rose-400/20 dark:bg-rose-500/10 dark:text-rose-200">{error}</p>}
         {notice && <p className="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-300/20 dark:bg-amber-400/10 dark:text-amber-100">{notice}</p>}
         {!loading && !error && <GraphCanvas key={`${mode}:${owner}:${repo}:${nodes.length}:${edges.length}`} nodes={nodes} edges={edges} mode={mode} onNodeClick={handleNodeClick} />}
-        <SidePanel filePath={selectedFile} owner={owner} repo={repo} onClose={() => setSelectedFile(null)} />
+        
+        <SidePanel 
+          filePath={selectedFile} 
+          owner={owner} 
+          repo={repo} 
+          isOpen={isPanelOpen}
+          onClose={() => setIsPanelOpen(false)} 
+        />
       </div>
     </div>
   );

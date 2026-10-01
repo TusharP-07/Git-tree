@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { fetchFileContent } from "@/lib/github";
-import { isRateLimited } from "@/lib/rateLimit";
+import { checkRateLimit } from "@/lib/ratelimit";
 import { isSafeRepositoryPath, isValidRepository } from "@/lib/validation";
 
 const GEMINI_API_URL =
@@ -33,10 +33,12 @@ export async function POST(request: NextRequest) {
     }
 
     const rateLimitKey = session.user?.email || session.user?.name || accessToken;
-    if (isRateLimited(rateLimitKey, 20, 60 * 60 * 1000)) {
+    const { success, headers } = await checkRateLimit(rateLimitKey);
+    
+    if (!success) {
       return NextResponse.json(
-        { error: "Summary limit reached. Please try again in an hour." },
-        { status: 429 }
+        { error: "Summary limit reached. Please try again later." },
+        { status: 429, headers }
       );
     }
 

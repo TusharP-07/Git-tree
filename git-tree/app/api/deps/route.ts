@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { fetchFileContent, fetchRepoTree } from "@/lib/github";
 import { extractImports, resolveImportPath } from "@/lib/parseImports";
 import { isValidRepository } from "@/lib/validation";
+import { checkRateLimit } from "@/lib/ratelimit";
 
 const SUPPORTED_EXTENSIONS = ["js", "jsx", "ts", "tsx", "py"];
 const MAX_FILES_TO_PARSE = 60;
@@ -40,6 +41,17 @@ export async function GET(request: NextRequest) {
   try {
     const session = await auth();
     const accessToken = session?.accessToken;
+
+    const rateLimitKey = session?.user?.email || session?.user?.name || accessToken || request.ip || "anonymous";
+    const { success, headers } = await checkRateLimit(rateLimitKey);
+    
+    if (!success) {
+      return NextResponse.json(
+        { error: "Dependency analysis limit reached. Please try again later." },
+        { status: 429, headers }
+      );
+    }
+
     const { tree, truncated: treeTruncated } = await fetchRepoTree(owner, repo, accessToken);
     const allPaths = new Set(tree.map((item) => item.path));
     const allSourceFiles = tree.filter((item) => {
@@ -62,8 +74,7 @@ export async function GET(request: NextRequest) {
             .map((importPath) => resolveImportPath(file.path, importPath, allPaths, extension === "py"))
             .filter((target): target is string => target !== null)
             .map((target) => ({ source: file.path, target }));
-        } catch (error) {
-          console.error(`[deps] Could not analyze ${file.path}:`, error);
+        } catch {
           return [];
         }
       }

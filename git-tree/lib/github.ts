@@ -42,16 +42,31 @@ function contentPath(path: string): string {
   return path.split("/").map(encodeURIComponent).join("/");
 }
 
+import { redis } from "./redis";
+
 export interface RepositoryTreeResult {
   tree: GitTreeItem[];
   truncated: boolean;
 }
+
+const REDIS_CACHE_TTL = 3600; // 1 hour
 
 export async function fetchRepoTree(
   owner: string,
   repo: string,
   accessToken?: string
 ): Promise<RepositoryTreeResult> {
+  const cacheKey = `repo-tree:${owner}:${repo}`;
+  
+  if (redis && !accessToken) {
+    try {
+      const cached = await redis.get<RepositoryTreeResult>(cacheKey);
+      if (cached) return cached;
+    } catch (e) {
+      console.warn("Redis get error:", e);
+    }
+  }
+
   const headers: Record<string, string> = {
     Accept: "application/vnd.github+json",
   };
@@ -77,7 +92,17 @@ export async function fetchRepoTree(
   }
   const treeData = await treeRes.json();
 
-  return { tree: treeData.tree as GitTreeItem[], truncated: Boolean(treeData.truncated) };
+  const result = { tree: treeData.tree as GitTreeItem[], truncated: Boolean(treeData.truncated) };
+
+  if (redis && !accessToken) {
+    try {
+      await redis.setex(cacheKey, REDIS_CACHE_TTL, JSON.stringify(result));
+    } catch (e) {
+      console.warn("Redis set error:", e);
+    }
+  }
+
+  return result;
 }
 
 export async function fetchFileContent(
@@ -86,6 +111,17 @@ export async function fetchFileContent(
   path: string,
   accessToken?: string
 ): Promise<string> {
+  const cacheKey = `file-content:${owner}:${repo}:${path}`;
+
+  if (redis && !accessToken) {
+    try {
+      const cached = await redis.get<string>(cacheKey);
+      if (cached) return cached;
+    } catch (e) {
+      console.warn("Redis get error:", e);
+    }
+  }
+
   const headers: Record<string, string> = {
     Accept: "application/vnd.github.raw+json",
   };
@@ -102,5 +138,15 @@ export async function fetchFileContent(
     throw new Error(`Failed to fetch file content (${res.status})`);
   }
 
-  return res.text();
+  const text = await res.text();
+
+  if (redis && !accessToken) {
+    try {
+      await redis.setex(cacheKey, REDIS_CACHE_TTL, text);
+    } catch (e) {
+      console.warn("Redis set error:", e);
+    }
+  }
+
+  return text;
 }
