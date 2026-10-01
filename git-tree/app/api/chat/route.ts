@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
 import { checkRateLimit } from "@/lib/ratelimit";
 import { isValidRepository } from "@/lib/validation";
+import { supabase } from "@/lib/supabase";
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -46,6 +47,26 @@ You can use tools to explore the file tree and read file contents to answer thei
 Always give concise, accurate answers. Do not guess what's inside a file without reading it if you are asked a specific question.`,
       tools: getChatTools(owner, repo, accessToken),
       maxSteps: 6, // tool-calling loop (max 5-6 iterations/turn)
+      async onFinish({ text, toolCalls, toolResults, finishReason, usage }) {
+        if (!supabase) return; // Fail open if supabase is missing
+        
+        try {
+          // Append the AI's final response to the conversation history
+          const finalMessages = [
+            ...messages,
+            { role: "assistant", content: text }
+          ];
+
+          await supabase.from("chat_history").insert({
+            owner,
+            repo,
+            user_id: rateLimitKey,
+            messages: finalMessages
+          });
+        } catch (dbError) {
+          console.error("Failed to save chat history:", dbError);
+        }
+      }
     });
 
     return result.toDataStreamResponse();
