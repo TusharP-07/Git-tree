@@ -20,9 +20,8 @@ export default function SidePanel({ filePath, owner, repo, onClose, isOpen }: Si
   const [activeTab, setActiveTab] = useState<"summary" | "chat">("chat");
   const [input, setInput] = useState("");
 
-  // @ts-expect-error
   const { messages, sendMessage, status } = useChat({
-    // @ts-expect-error
+    // @ts-expect-error type mismatch
     api: "/api/chat",
     body: { owner, repo },
   });
@@ -32,7 +31,7 @@ export default function SidePanel({ filePath, owner, repo, onClose, isOpen }: Si
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim()) return;
-    // @ts-expect-error
+    // @ts-expect-error type mismatch
     sendMessage({ content: input, role: "user" });
     setInput("");
   };
@@ -145,10 +144,10 @@ export default function SidePanel({ filePath, owner, repo, onClose, isOpen }: Si
                   </div>
                   <div className={`flex flex-col text-sm ${m.role === 'user' ? 'items-end' : 'items-start'}`}>
                     <div className={`rounded-2xl px-4 py-2 ${m.role === 'user' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-800 dark:bg-white/5 dark:text-slate-200'}`}>
-                      {/* @ts-expect-error */}
+                      {/* @ts-expect-error type mismatch */}
                       {m.content || (
                         <span className="italic opacity-60">
-                          {/* @ts-expect-error */}
+                          {/* @ts-expect-error type mismatch */}
                           {m.toolInvocations ? "Exploring repository..." : "Thinking..."}
                         </span>
                       )}
