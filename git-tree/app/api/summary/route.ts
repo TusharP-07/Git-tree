@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { fetchFileContent } from "@/lib/github";
-import { checkRateLimit } from "@/lib/ratelimit";
+import { checkRateLimit } from "@/lib/rate-limit";
 import { isSafeRepositoryPath, isValidRepository } from "@/lib/validation";
 
 const GEMINI_API_URL =

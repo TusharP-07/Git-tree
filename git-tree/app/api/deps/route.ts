@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 import { fetchFileContent, fetchRepoTree } from "@/lib/github";
 import { extractImports, resolveImportPath } from "@/lib/parseImports";
 import { isValidRepository } from "@/lib/validation";
-import { checkRateLimit } from "@/lib/ratelimit";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 const SUPPORTED_EXTENSIONS = ["js", "jsx", "ts", "tsx", "py"];
 const MAX_FILES_TO_PARSE = 60;

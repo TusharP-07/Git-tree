@@ -3,7 +3,7 @@ import { streamText } from "ai";
 import { getChatTools } from "@/lib/tools";
 import { auth } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
-import { checkRateLimit } from "@/lib/ratelimit";
+import { checkRateLimit } from "@/lib/rate-limit";
 import { isValidRepository } from "@/lib/validation";
 import { supabase } from "@/lib/supabase";
 
