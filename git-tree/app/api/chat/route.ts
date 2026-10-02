@@ -46,9 +46,9 @@ export async function POST(req: NextRequest) {
 You can use tools to explore the file tree and read file contents to answer their questions.
 Always give concise, accurate answers. Do not guess what's inside a file without reading it if you are asked a specific question.`,
       tools: getChatTools(owner, repo, accessToken),
-      // @ts-ignore
+      // @ts-expect-error
       maxSteps: 6, // tool-calling loop (max 5-6 iterations/turn)
-      async onFinish({ text, toolCalls, toolResults, finishReason, usage }) {
+      async onFinish({ text }) {
         if (!supabase) return; // Fail open if supabase is missing
         
         try {
@@ -70,7 +70,7 @@ Always give concise, accurate answers. Do not guess what's inside a file without
       }
     });
 
-    return (result as any).toDataStreamResponse();
+    return (result as unknown as { toDataStreamResponse: () => Response }).toDataStreamResponse();
   } catch (error) {
     console.error("Chat API error:", error);
     return NextResponse.json({ error: "An error occurred during chat" }, { status: 500 });

@@ -43,7 +43,7 @@ export function getChatTools(owner: string, repo: string, accessToken?: string) 
       parameters: z.object({
         path: z.string().describe("The directory path to list files for. Use an empty string '' for the root directory of the repository."),
       }),
-      // @ts-ignore
+      // @ts-expect-error
       execute: async ({ path }: { path: string }) => await executeListFiles(owner, repo, path, accessToken),
     }),
     getFileContent: tool({
@@ -51,7 +51,7 @@ export function getChatTools(owner: string, repo: string, accessToken?: string) 
       parameters: z.object({
         path: z.string().describe("The exact file path to fetch the content for (e.g., 'src/index.ts')."),
       }),
-      // @ts-ignore
+      // @ts-expect-error
       execute: async ({ path }: { path: string }) => {
         try {
           return await fetchFileContent(owner, repo, path, accessToken);
