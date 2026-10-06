@@ -4,28 +4,37 @@ import { getChatTools } from "@/lib/tools";
 import { auth } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { getPersistentUserIdentifier, getRateLimitIdentifier } from "@/lib/request-identity";
 import { isValidRepository } from "@/lib/validation";
 import { supabase } from "@/lib/supabase";
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
+const MAX_CHAT_MESSAGES = 30;
+const MAX_CHAT_REQUEST_BYTES = 100_000;
 
 export async function POST(req: NextRequest) {
   try {
+    const contentLength = Number(req.headers.get("content-length"));
+    if (Number.isFinite(contentLength) && contentLength > MAX_CHAT_REQUEST_BYTES) {
+      return NextResponse.json({ error: "Chat request is too large" }, { status: 413 });
+    }
+
     const { messages, owner, repo } = await req.json();
 
     if (!owner || !repo || !isValidRepository(owner, repo)) {
       return NextResponse.json({ error: "Invalid repository parameters" }, { status: 400 });
     }
 
-    if (!messages || !Array.isArray(messages)) {
+    if (!messages || !Array.isArray(messages) || messages.length > MAX_CHAT_MESSAGES) {
       return NextResponse.json({ error: "Invalid messages format" }, { status: 400 });
     }
 
     const session = await auth();
     const accessToken = session?.accessToken;
 
-    const rateLimitKey = session?.user?.email || session?.user?.name || accessToken || req.headers.get("x-forwarded-for") || "anonymous";
+    const rateLimitKey = getRateLimitIdentifier(req, session?.user);
+    const historyUserId = getPersistentUserIdentifier(session?.user);
     const { success, headers } = await checkRateLimit(rateLimitKey);
     
     if (!success) {
@@ -61,7 +70,7 @@ Always give concise, accurate answers. Do not guess what's inside a file without
           await supabase.from("chat_history").insert({
             owner,
             repo,
-            user_id: rateLimitKey,
+            user_id: historyUserId,
             messages: finalMessages
           });
         } catch (dbError) {

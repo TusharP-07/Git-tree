@@ -33,6 +33,8 @@
 }
 
 :root {
+  --font-sans: Arial, Helvetica, sans-serif;
+  --font-geist-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
   --graph-grid: #dbe4f0;
   --graph-minimap-mask: rgb(226 232 240 / 70%);
 }
@@ -85,7 +87,6 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);

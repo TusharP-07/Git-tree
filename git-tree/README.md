@@ -14,10 +14,11 @@ RepoGraph visualizes the file tree and internal dependencies of a GitHub reposit
 
 - Tree and dependency views may be used for public repositories without signing in.
 - GitHub requests never fall back to a server-wide GitHub token. A private repository can only be accessed with the signed-in user's GitHub OAuth token.
-- AI file summaries require sign-in and are limited to 20 requests per user per hour in a single server instance.
+- AI file summaries require sign-in. Chat, summary, tree, and dependency endpoints are limited to 20 requests per minute per user or client address.
 - Repository owners, names, and file paths are validated before GitHub API requests are made.
 
-For a multi-instance production deployment, replace the in-memory summary rate limiter with a shared store such as Redis.
+For a multi-instance production deployment, set `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`. Without them, rate limiting falls back to per-instance memory and is not sufficient for a distributed deployment.
+- Apply `supabase/schema.sql` with a service-role Supabase key before enabling chat-history persistence. Row-level security is enabled and the browser must not receive that key.
 
 ## Limits
 

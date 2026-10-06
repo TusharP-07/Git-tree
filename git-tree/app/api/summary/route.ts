@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { fetchFileContent } from "@/lib/github";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { getRateLimitIdentifier } from "@/lib/request-identity";
 import { isSafeRepositoryPath, isValidRepository } from "@/lib/validation";
 
 const GEMINI_API_URL =
@@ -32,7 +33,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Sign in to generate AI summaries" }, { status: 401 });
     }
 
-    const rateLimitKey = session.user?.email || session.user?.name || accessToken;
+    const rateLimitKey = getRateLimitIdentifier(request, session.user);
     const { success, headers } = await checkRateLimit(rateLimitKey);
     
     if (!success) {

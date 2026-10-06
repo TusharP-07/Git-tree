@@ -4,6 +4,7 @@ import { fetchFileContent, fetchRepoTree } from "@/lib/github";
 import { extractImports, resolveImportPath } from "@/lib/parseImports";
 import { isValidRepository } from "@/lib/validation";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { getRateLimitIdentifier } from "@/lib/request-identity";
 
 const SUPPORTED_EXTENSIONS = ["js", "jsx", "ts", "tsx", "py"];
 const MAX_FILES_TO_PARSE = 60;
@@ -42,7 +43,7 @@ export async function GET(request: NextRequest) {
     const session = await auth();
     const accessToken = session?.accessToken;
 
-    const rateLimitKey = session?.user?.email || session?.user?.name || accessToken || request.headers.get("x-forwarded-for") || "anonymous";
+    const rateLimitKey = getRateLimitIdentifier(request, session?.user);
     const { success, headers } = await checkRateLimit(rateLimitKey);
     
     if (!success) {

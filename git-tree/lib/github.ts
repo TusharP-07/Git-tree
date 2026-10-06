@@ -96,7 +96,7 @@ export async function fetchRepoTree(
 
   if (redis && !accessToken) {
     try {
-      await redis.setex(cacheKey, REDIS_CACHE_TTL, JSON.stringify(result));
+      await redis.setex(cacheKey, REDIS_CACHE_TTL, result);
     } catch (e) {
       console.warn("Redis set error:", e);
     }
@@ -115,8 +115,8 @@ export async function fetchFileContent(
 
   if (redis && !accessToken) {
     try {
-      const cached = await redis.get<string>(cacheKey);
-      if (cached) return cached;
+      const cached = await redis.get<{ content: string }>(cacheKey);
+      if (cached?.content) return cached.content;
     } catch (e) {
       console.warn("Redis get error:", e);
     }
@@ -142,7 +142,9 @@ export async function fetchFileContent(
 
   if (redis && !accessToken) {
     try {
-      await redis.setex(cacheKey, REDIS_CACHE_TTL, text);
+      // Store the content inside an object so Upstash's default JSON
+      // deserialization cannot turn JSON source files into objects on read.
+      await redis.setex(cacheKey, REDIS_CACHE_TTL, { content: text });
     } catch (e) {
       console.warn("Redis set error:", e);
     }

@@ -123,7 +123,10 @@ export default function GraphPage() {
         <div className="flex items-center gap-4">
           <ModeToggle mode={mode} onChange={setMode} />
           <button 
-            onClick={() => setIsPanelOpen(true)}
+            onClick={() => {
+              setSelectedFile(null);
+              setIsPanelOpen(true);
+            }}
             className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600"
           >
             Chat with AI
@@ -141,7 +144,10 @@ export default function GraphPage() {
           owner={owner} 
           repo={repo} 
           isOpen={isPanelOpen}
-          onClose={() => setIsPanelOpen(false)} 
+          onClose={() => {
+            setSelectedFile(null);
+            setIsPanelOpen(false);
+          }}
         />
       </div>
     </div>

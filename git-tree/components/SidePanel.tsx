@@ -95,7 +95,7 @@ export default function SidePanel({ filePath, owner, repo, onClose, isOpen }: Si
     return () => controller.abort();
   }, [filePath, owner, repo, activeTab]);
 
-  if (!isOpen && !filePath) return null;
+  if (!isOpen) return null;
 
   return (
     <aside className="fixed bottom-3 right-3 top-3 z-30 flex w-[min(24rem,calc(100vw-1.5rem))] flex-col rounded-2xl border border-slate-200 bg-white/95 shadow-2xl shadow-slate-950/15 backdrop-blur-xl dark:border-white/10 dark:bg-[#121a2e]/95 dark:shadow-black/40">
