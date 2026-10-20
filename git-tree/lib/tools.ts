@@ -2,6 +2,9 @@ import { tool } from "ai";
 import { z } from "zod";
 import { fetchRepoTree, fetchFileContent } from "./github";
 
+const MAX_CHAT_FILE_CHARS = 6_000;
+const MAX_CHAT_TREE_ENTRIES = 200;
+
 export async function executeListFiles(owner: string, repo: string, path: string, accessToken?: string) {
   try {
     const { tree } = await fetchRepoTree(owner, repo, accessToken);
@@ -30,6 +33,12 @@ export async function executeListFiles(owner: string, repo: string, path: string
     }
     
     const result = Array.from(children).sort();
+    if (result.length > MAX_CHAT_TREE_ENTRIES) {
+      return [
+        ...result.slice(0, MAX_CHAT_TREE_ENTRIES),
+        `(Showing the first ${MAX_CHAT_TREE_ENTRIES} entries of ${result.length}.)`,
+      ];
+    }
     return result.length > 0 ? result : ["(Empty directory or path not found)"];
   } catch (err) {
     return [(err as Error).message];
@@ -54,7 +63,10 @@ export function getChatTools(owner: string, repo: string, accessToken?: string) 
       // @ts-expect-error type mismatch
       execute: async ({ path }: { path: string }) => {
         try {
-          return await fetchFileContent(owner, repo, path, accessToken);
+          const content = await fetchFileContent(owner, repo, path, accessToken);
+          return content.length > MAX_CHAT_FILE_CHARS
+            ? `${content.slice(0, MAX_CHAT_FILE_CHARS)}\n\n[File truncated for chat.]`
+            : content;
         } catch (err) {
           return `Error fetching file: ${(err as Error).message}`;
         }
