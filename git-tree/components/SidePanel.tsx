@@ -121,7 +121,7 @@ export default function SidePanel({ filePath, owner, repo, onClose, isOpen }: Si
       ease="power3.out"
       className={`fixed bottom-3 right-3 top-3 z-30 w-[min(24rem,calc(100vw-1.5rem))] transition-all duration-200 ${isClosing ? "translate-x-5 scale-[0.98] opacity-0" : "translate-x-0 scale-100 opacity-100"}`}
     >
-      <aside className="relative flex h-full overflow-hidden rounded-2xl border border-slate-200 bg-white/95 shadow-2xl shadow-slate-950/15 backdrop-blur-xl dark:border-white/10 dark:bg-[#121a2e]/95 dark:shadow-black/40">
+      <aside className="relative flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white/95 shadow-2xl shadow-slate-950/15 backdrop-blur-xl dark:border-white/10 dark:bg-[#121a2e]/95 dark:shadow-black/40">
       <div className="pointer-events-none absolute -right-20 -top-20 h-44 w-44 rounded-full bg-indigo-400/15 blur-3xl dark:bg-indigo-500/15" />
       <div className="flex items-center justify-between border-b border-slate-200 p-4 dark:border-white/10">
         <div className="flex gap-2">

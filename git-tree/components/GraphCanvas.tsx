@@ -9,6 +9,7 @@ import ReactFlow, {
   type Edge,
 } from "reactflow";
 import "reactflow/dist/style.css";
+import { SlidersHorizontal } from "lucide-react";
 import FileNode from "./FileNode";
 import type { FileNodeData } from "@/types";
 import { layoutGraph } from "@/lib/layoutGraph";
@@ -27,7 +28,36 @@ export default function GraphCanvas({ nodes, edges, mode, onNodeClick }: GraphCa
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState(0);
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
+  const [hiddenExtensions, setHiddenExtensions] = useState<Set<string>>(new Set());
   const isTreeView = mode === "tree";
+
+  const fileExtensions = useMemo(
+    () => Array.from(new Set(nodes.filter((node) => node.data.fileType === "blob").map((node) => node.data.extension || "[no extension]"))).sort(),
+    [nodes]
+  );
+
+  const filteredNodes = useMemo(() => {
+    if (!isTreeView || hiddenExtensions.size === 0) return nodes;
+
+    const visibleFileIds = nodes
+      .filter((node) => node.data.fileType === "blob" && !hiddenExtensions.has(node.data.extension || "[no extension]"))
+      .map((node) => node.id);
+    const visibleFolderIds = new Set<string>();
+
+    visibleFileIds.forEach((path) => {
+      const segments = path.split("/");
+      for (let index = 1; index < segments.length; index += 1) {
+        visibleFolderIds.add(segments.slice(0, index).join("/"));
+      }
+    });
+
+    return nodes.filter(
+      (node) =>
+        node.data.fileType === "blob"
+          ? !hiddenExtensions.has(node.data.extension || "[no extension]")
+          : visibleFolderIds.has(node.id)
+    );
+  }, [hiddenExtensions, isTreeView, nodes]);
 
   const folderIds = useMemo(
     () => nodes.filter((node) => node.data.fileType === "tree").map((node) => node.id),
@@ -35,13 +65,13 @@ export default function GraphCanvas({ nodes, edges, mode, onNodeClick }: GraphCa
   );
 
   const visibleTreeNodes = useMemo(() => {
-    if (!isTreeView) return nodes;
+    if (!isTreeView) return filteredNodes;
 
-    return nodes.filter((node) => {
+    return filteredNodes.filter((node) => {
       const ancestors = node.id.split("/").slice(0, -1);
       return ancestors.every((_, index) => expandedFolders.has(ancestors.slice(0, index + 1).join("/")));
     });
-  }, [nodes, expandedFolders, isTreeView]);
+  }, [filteredNodes, expandedFolders, isTreeView]);
 
   const visibleTreeNodeIds = useMemo(() => new Set(visibleTreeNodes.map((node) => node.id)), [visibleTreeNodes]);
 
@@ -141,6 +171,17 @@ export default function GraphCanvas({ nodes, edges, mode, onNodeClick }: GraphCa
 
   const expandAll = useCallback(() => setExpandedFolders(new Set(folderIds)), [folderIds]);
   const collapseAll = useCallback(() => setExpandedFolders(new Set()), []);
+  const toggleExtension = useCallback((extension: string) => {
+    setHiddenExtensions((current) => {
+      const next = new Set(current);
+      if (next.has(extension)) next.delete(extension);
+      else next.add(extension);
+      return next;
+    });
+  }, []);
+
+  const visibleExtensionCount = fileExtensions.filter((extension) => !hiddenExtensions.has(extension)).length;
+  const filterKey = Array.from(hiddenExtensions).sort().join(",");
 
   return (
     <div className="graph-surface h-full w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl shadow-slate-950/5 dark:border-white/10 dark:bg-[#11172a] dark:shadow-black/30">
@@ -150,7 +191,7 @@ export default function GraphCanvas({ nodes, edges, mode, onNodeClick }: GraphCa
             <p className="text-xs font-semibold text-slate-800 dark:text-slate-100">{isTreeView ? "Folder-first view" : "Dependency view"}</p>
             <p className="text-[11px] text-slate-500 dark:text-slate-400">
               {isTreeView
-                ? `Click a folder to show or hide its contents · ${visibleTreeNodes.length} of ${nodes.length} items visible`
+                ? `Click a folder to show or hide its contents · ${visibleTreeNodes.length} of ${filteredNodes.length} filtered items visible`
                 : `${nodes.length} analyzed files · lines show detected imports`}
             </p>
           </div>
@@ -161,8 +202,33 @@ export default function GraphCanvas({ nodes, edges, mode, onNodeClick }: GraphCa
             </div>
           )}
         </div>
+        {isTreeView && fileExtensions.length > 0 && (
+          <details className="relative mt-2 border-t border-slate-200 pt-2 dark:border-white/10">
+            <summary className="flex cursor-pointer list-none items-center gap-1.5 text-[11px] font-semibold text-indigo-700 marker:hidden dark:text-indigo-300">
+              <SlidersHorizontal size={13} /> File types ({visibleExtensionCount}/{fileExtensions.length})
+            </summary>
+            <div className="mt-2 max-h-44 space-y-1 overflow-y-auto pr-1">
+              <div className="mb-2 flex gap-1.5">
+                <button type="button" onClick={() => setHiddenExtensions(new Set())} className="rounded-md bg-slate-100 px-2 py-1 text-[10px] font-semibold text-slate-700 hover:bg-slate-200 dark:bg-white/10 dark:text-slate-200 dark:hover:bg-white/15">Show all</button>
+                <button type="button" onClick={() => setHiddenExtensions(new Set(fileExtensions))} className="rounded-md bg-slate-100 px-2 py-1 text-[10px] font-semibold text-slate-700 hover:bg-slate-200 dark:bg-white/10 dark:text-slate-200 dark:hover:bg-white/15">Hide all</button>
+              </div>
+              {fileExtensions.map((extension) => (
+                <label key={extension} className="flex cursor-pointer items-center gap-2 rounded-md px-1 py-1 text-[11px] text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-white/5">
+                  <input
+                    type="checkbox"
+                    checked={!hiddenExtensions.has(extension)}
+                    onChange={() => toggleExtension(extension)}
+                    className="h-3.5 w-3.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 dark:border-white/20"
+                  />
+                  <span>{extension === "[no extension]" ? extension : `.${extension}`}</span>
+                </label>
+              ))}
+            </div>
+          </details>
+        )}
       </div>
       <ReactFlow
+        key={`${mode}:${filterKey}`}
         nodes={animatedNodes}
         edges={animatedEdges}
         nodeTypes={nodeTypes}
