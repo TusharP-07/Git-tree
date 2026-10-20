@@ -5,8 +5,8 @@ import { checkRateLimit } from "@/lib/rate-limit";
 import { getRateLimitIdentifier } from "@/lib/request-identity";
 import { isSafeRepositoryPath, isValidRepository } from "@/lib/validation";
 
-const GEMINI_API_URL =
-  "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
+const OPENAI_RESPONSES_API_URL = "https://api.openai.com/v1/responses";
+const OPENAI_SUMMARY_MODEL = "gpt-6-luna";
 
 const MAX_CONTENT_CHARS = 8000; // keep prompt small — cost & latency control
 
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!process.env.GEMINI_API_KEY) {
+    if (!process.env.OPENAI_API_KEY) {
       return NextResponse.json({ error: "AI summaries are not configured" }, { status: 503 });
     }
 
@@ -61,31 +61,38 @@ Summarize in 3 concise sentences:
 File content:
 ${truncated}`;
 
-    const geminiRes = await fetch(
-      `${GEMINI_API_URL}?key=${process.env.GEMINI_API_KEY}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { maxOutputTokens: 250, temperature: 0.3 },
-        }),
-      }
-    );
+    const openAiRes = await fetch(OPENAI_RESPONSES_API_URL, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: OPENAI_SUMMARY_MODEL,
+        input: prompt,
+        max_output_tokens: 200,
+        reasoning: { effort: "none" },
+      }),
+    });
 
-    if (!geminiRes.ok) {
-      const errText = await geminiRes.text();
-      console.error("Gemini API error:", errText);
+    if (!openAiRes.ok) {
+      const errText = await openAiRes.text();
+      console.error("OpenAI API error:", errText);
       return NextResponse.json(
         { error: "AI summary generation failed" },
         { status: 502 }
       );
     }
 
-    const data = await geminiRes.json();
+    const data = await openAiRes.json();
     const summary =
-      data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ||
-      "Could not generate a summary for this file.";
+      data.output
+        ?.filter((item: { type?: string }) => item.type === "message")
+        .flatMap((item: { content?: Array<{ type?: string; text?: string }> }) => item.content ?? [])
+        .filter((content: { type?: string }) => content.type === "output_text")
+        .map((content: { text?: string }) => content.text ?? "")
+        .join("")
+        .trim() || "Could not generate a summary for this file.";
 
     return NextResponse.json({ summary });
   } catch (err) {

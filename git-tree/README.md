@@ -6,7 +6,7 @@ RepoGraph visualizes the file tree and internal dependencies of a GitHub reposit
 
 1. Copy `.env.example` to `.env.local`.
 2. Create a GitHub OAuth application and set its callback URL to `http://localhost:3000/api/auth/callback/github` for local development.
-3. Fill in the GitHub OAuth credentials, an `AUTH_SECRET`, and a Gemini API key.
+3. Fill in the GitHub OAuth credentials, an `AUTH_SECRET`, and an OpenAI API key.
 4. Install dependencies with `npm install`.
 5. Start the app with `npm run dev`.
 
