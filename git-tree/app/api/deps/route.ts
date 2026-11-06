@@ -5,6 +5,7 @@ import { extractImports, resolveImportPath } from "@/lib/parseImports";
 import { isValidRepository } from "@/lib/validation";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { getRateLimitIdentifier } from "@/lib/request-identity";
+import { classifyDependencyFeature } from "@/lib/dependencyFeatures";
 
 const SUPPORTED_EXTENSIONS = ["js", "jsx", "ts", "tsx", "py"];
 const MAX_FILES_TO_PARSE = 60;
@@ -64,28 +65,33 @@ export async function GET(request: NextRequest) {
     const fileLimit = accessToken ? MAX_FILES_TO_PARSE : MAX_PUBLIC_FILES_TO_PARSE;
     const sourceFiles = allSourceFiles.slice(0, fileLimit);
 
-    const edgeLists = await mapWithConcurrency(
+    const analysis = await mapWithConcurrency(
       sourceFiles,
       CONTENT_FETCH_CONCURRENCY,
       async (file) => {
         try {
           const content = await fetchFileContent(owner, repo, file.path, accessToken);
           const extension = file.path.split(".").pop()?.toLowerCase() || "";
-          return extractImports(content, extension)
+          return {
+            feature: classifyDependencyFeature(file.path, content),
+            edges: extractImports(content, extension)
             .map((importPath) => resolveImportPath(file.path, importPath, allPaths, extension === "py"))
             .filter((target): target is string => target !== null)
-            .map((target) => ({ source: file.path, target }));
+            .map((target) => ({ source: file.path, target })),
+          };
         } catch {
-          return [];
+          return { feature: classifyDependencyFeature(file.path, ""), edges: [] };
         }
       }
     );
 
-    const edges = [...new Map(edgeLists.flat().map((edge) => [`${edge.source}->${edge.target}`, edge])).values()];
+    const edges = [...new Map(analysis.flatMap(({ edges }) => edges).map((edge) => [`${edge.source}->${edge.target}`, edge])).values()];
+    const features = Object.fromEntries(analysis.map(({ feature }, index) => [sourceFiles[index].path, feature]));
 
     return NextResponse.json({
       nodes: sourceFiles.map((file) => file.path),
       edges,
+      features,
       treeTruncated,
       totalSourceFiles: allSourceFiles.length,
       analyzedFiles: sourceFiles.length,

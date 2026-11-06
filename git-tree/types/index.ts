@@ -12,6 +12,7 @@ export interface FileNodeData {
   extension: string;
   childCount?: number;
   expanded?: boolean;
+  feature?: import("@/lib/dependencyFeatures").DependencyFeature;
 }
 
 export interface SummaryResponse {

@@ -13,18 +13,21 @@ import { SlidersHorizontal } from "lucide-react";
 import FileNode from "./FileNode";
 import type { FileNodeData } from "@/types";
 import { layoutGraph } from "@/lib/layoutGraph";
+import { dependencyFeatureLabels, type DependencyFeature } from "@/lib/dependencyFeatures";
 
 interface GraphCanvasProps {
   nodes: Node<FileNodeData>[];
   edges: Edge[];
   mode: "tree" | "dependency";
   onNodeClick: (path: string) => void;
+  activeFeature?: DependencyFeature | "all";
+  onFeatureChange?: (feature: DependencyFeature | "all") => void;
 }
 
 const nodeTypes = { fileNode: FileNode };
 const REVEAL_STEP_MS = 80; // delay between each depth level appearing
 
-export default function GraphCanvas({ nodes, edges, mode, onNodeClick }: GraphCanvasProps) {
+export default function GraphCanvas({ nodes, edges, mode, onNodeClick, activeFeature = "all", onFeatureChange }: GraphCanvasProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState(0);
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
@@ -37,7 +40,8 @@ export default function GraphCanvas({ nodes, edges, mode, onNodeClick }: GraphCa
   );
 
   const filteredNodes = useMemo(() => {
-    if (!isTreeView || hiddenExtensions.size === 0) return nodes;
+    if (!isTreeView) return activeFeature === "all" ? nodes : nodes.filter((node) => node.data.feature === activeFeature);
+    if (hiddenExtensions.size === 0) return nodes;
 
     const visibleFileIds = nodes
       .filter((node) => node.data.fileType === "blob" && !hiddenExtensions.has(node.data.extension || "[no extension]"))
@@ -57,7 +61,7 @@ export default function GraphCanvas({ nodes, edges, mode, onNodeClick }: GraphCa
           ? !hiddenExtensions.has(node.data.extension || "[no extension]")
           : visibleFolderIds.has(node.id)
     );
-  }, [hiddenExtensions, isTreeView, nodes]);
+  }, [activeFeature, hiddenExtensions, isTreeView, nodes]);
 
   const folderIds = useMemo(
     () => nodes.filter((node) => node.data.fileType === "tree").map((node) => node.id),
@@ -182,6 +186,11 @@ export default function GraphCanvas({ nodes, edges, mode, onNodeClick }: GraphCa
 
   const visibleExtensionCount = fileExtensions.filter((extension) => !hiddenExtensions.has(extension)).length;
   const filterKey = Array.from(hiddenExtensions).sort().join(",");
+  const featureOptions = useMemo(
+    () => (Object.keys(dependencyFeatureLabels) as DependencyFeature[])
+      .filter((feature) => nodes.some((node) => node.data.feature === feature)),
+    [nodes]
+  );
 
   return (
     <div className="graph-surface h-full w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl shadow-slate-950/5 dark:border-white/10 dark:bg-[#11172a] dark:shadow-black/30">
@@ -192,7 +201,7 @@ export default function GraphCanvas({ nodes, edges, mode, onNodeClick }: GraphCa
             <p className="text-[11px] text-slate-500 dark:text-slate-400">
               {isTreeView
                 ? `Click a folder to show or hide its contents · ${visibleTreeNodes.length} of ${filteredNodes.length} filtered items visible`
-                : `${nodes.length} analyzed files · lines show detected imports`}
+                : `${filteredNodes.length} of ${nodes.length} analyzed files · lines show detected imports`}
             </p>
           </div>
           {isTreeView && (
@@ -225,6 +234,14 @@ export default function GraphCanvas({ nodes, edges, mode, onNodeClick }: GraphCa
               ))}
             </div>
           </details>
+        )}
+        {!isTreeView && featureOptions.length > 1 && onFeatureChange && (
+          <div className="mt-2 flex max-w-full gap-1 overflow-x-auto border-t border-slate-200 pt-2 dark:border-white/10">
+            <button type="button" onClick={() => onFeatureChange("all")} className={`shrink-0 rounded-md px-2 py-1 text-[10px] font-semibold ${activeFeature === "all" ? "bg-indigo-600 text-white" : "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-white/10 dark:text-slate-200"}`}>All features</button>
+            {featureOptions.map((feature) => (
+              <button key={feature} type="button" onClick={() => onFeatureChange(feature)} className={`shrink-0 rounded-md px-2 py-1 text-[10px] font-semibold ${activeFeature === feature ? "bg-indigo-600 text-white" : "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-white/10 dark:text-slate-200"}`}>{dependencyFeatureLabels[feature]}</button>
+            ))}
+          </div>
         )}
       </div>
       <ReactFlow

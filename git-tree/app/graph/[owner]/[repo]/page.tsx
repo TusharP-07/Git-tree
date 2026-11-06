@@ -11,6 +11,7 @@ import SidePanel from "@/components/SidePanel";
 import { buildTreeGraph } from "@/lib/buildTree";
 import { layoutGraph } from "@/lib/layoutGraph";
 import type { FileNodeData, GitTreeItem } from "@/types";
+import type { DependencyFeature } from "@/lib/dependencyFeatures";
 
 interface TreeResponse {
   tree: GitTreeItem[];
@@ -23,6 +24,7 @@ interface DependencyResponse {
   treeTruncated: boolean;
   totalSourceFiles: number;
   analyzedFiles: number;
+  features: Record<string, DependencyFeature>;
 }
 
 export default function GraphPage() {
@@ -36,6 +38,7 @@ export default function GraphPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [activeFeature, setActiveFeature] = useState<DependencyFeature | "all">("all");
 
   useEffect(() => {
     const controller = new AbortController();
@@ -78,7 +81,7 @@ export default function GraphPage() {
         const dependencyNodes: Node<FileNodeData>[] = dependencyData.nodes.map((path) => {
           const label = path.split("/").pop() || path;
           const extension = label.includes(".") ? label.split(".").pop()! : "";
-          return { id: path, type: "fileNode", position: { x: 0, y: 0 }, data: { label, fullPath: path, fileType: "blob", extension } };
+          return { id: path, type: "fileNode", position: { x: 0, y: 0 }, data: { label, fullPath: path, fileType: "blob", extension, feature: dependencyData.features[path] } };
         });
         const dependencyEdges: Edge[] = dependencyData.edges.map((edge) => ({
           id: `${edge.source}->${edge.target}`,
@@ -121,7 +124,7 @@ export default function GraphPage() {
           <h2 className="truncate text-sm font-semibold text-slate-800 dark:text-slate-100">{owner}/{repo}</h2>
         </div>
         <div className="flex items-center gap-4">
-          <ModeToggle mode={mode} onChange={setMode} />
+          <ModeToggle mode={mode} onChange={(nextMode) => { setMode(nextMode); setActiveFeature("all"); }} />
           <button 
             onClick={() => {
               setSelectedFile(null);
@@ -137,7 +140,7 @@ export default function GraphPage() {
         {loading && <LoadingSpinner text={`Loading ${mode} view...`} />}
         {error && <p className="rounded-2xl border border-rose-200 bg-rose-50 p-5 text-sm text-rose-700 dark:border-rose-400/20 dark:bg-rose-500/10 dark:text-rose-200">{error}</p>}
         {notice && <p className="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-300/20 dark:bg-amber-400/10 dark:text-amber-100">{notice}</p>}
-        {!loading && !error && <GraphCanvas key={`${mode}:${owner}:${repo}:${nodes.length}:${edges.length}`} nodes={nodes} edges={edges} mode={mode} onNodeClick={handleNodeClick} />}
+        {!loading && !error && <GraphCanvas key={`${mode}:${owner}:${repo}:${nodes.length}:${edges.length}`} nodes={nodes} edges={edges} mode={mode} activeFeature={activeFeature} onFeatureChange={setActiveFeature} onNodeClick={handleNodeClick} />}
         
         <SidePanel 
           filePath={selectedFile} 

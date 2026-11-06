@@ -34,3 +34,5 @@ Run these before deployment:
 npm run lint
 npm run build
 ```
+
+`npm run build` uses webpack because the current Turbopack build path can fail while processing React Flow's stylesheet. This does not change the runtime deployment model.
