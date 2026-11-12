@@ -2,10 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ReactFlow, {
+  applyNodeChanges,
   Background,
   MiniMap,
   type Node,
   type Edge,
+  type NodeChange,
   type ReactFlowInstance,
 } from "reactflow";
 import "reactflow/dist/style.css";
@@ -32,11 +34,8 @@ export default function GraphCanvas({ nodes, edges, mode, onNodeClick, activeFea
   const [visibleCount, setVisibleCount] = useState(0);
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
   const [hiddenExtensions, setHiddenExtensions] = useState<Set<string>>(new Set());
-  const [manualPositions, setManualPositions] = useState<Record<string, { x: number; y: number }>>({});
   const [selectedFlow, setSelectedFlow] = useState<DataFlow | null>(null);
   const flowRef = useRef<ReactFlowInstance | null>(null);
-  const pendingPositionsRef = useRef<Record<string, { x: number; y: number }>>({});
-  const positionFrameRef = useRef<number | null>(null);
   const isTreeView = mode === "tree";
 
   const fileExtensions = useMemo(
@@ -89,16 +88,26 @@ export default function GraphCanvas({ nodes, edges, mode, onNodeClick, activeFea
     return layoutGraph(visibleTreeNodes, visibleEdges, "TB");
   }, [edges, visibleTreeNodeIds, visibleTreeNodes]);
 
+  const layoutKey = useMemo(
+    () => laidOutGraph.nodes.map((node) => `${node.id}:${node.position.x}:${node.position.y}`).join("|"),
+    [laidOutGraph.nodes]
+  );
+  const [interactiveNodes, setInteractiveNodes] = useState<Node<FileNodeData>[]>(() => laidOutGraph.nodes);
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setInteractiveNodes(laidOutGraph.nodes));
+    return () => cancelAnimationFrame(frame);
+  }, [layoutKey, laidOutGraph.nodes]);
+
   const displayedNodes = useMemo(
-    () => laidOutGraph.nodes.map((node) => ({
+    () => interactiveNodes.map((node) => ({
       ...node,
-      position: manualPositions[node.id] ?? node.position,
       data: {
         ...node.data,
         expanded: isTreeView && expandedFolders.has(node.id),
       },
     })),
-    [expandedFolders, isTreeView, laidOutGraph.nodes, manualPositions]
+    [expandedFolders, interactiveNodes, isTreeView]
   );
 
   const layoutYByNodeId = useMemo(
@@ -213,29 +222,12 @@ export default function GraphCanvas({ nodes, edges, mode, onNodeClick, activeFea
     });
   }, []);
   const resetLayout = useCallback(() => {
-    setManualPositions({});
+    setInteractiveNodes(laidOutGraph.nodes);
     setSelectedFlow(null);
     requestAnimationFrame(() => flowRef.current?.fitView({ padding: 0.25, duration: 300 }));
-  }, []);
-  const commitPendingPositions = useCallback(() => {
-    const pending = pendingPositionsRef.current;
-    pendingPositionsRef.current = {};
-    positionFrameRef.current = null;
-    setManualPositions((current) => ({ ...current, ...pending }));
-  }, []);
-  const handleNodeDrag = useCallback((_event: React.MouseEvent, node: Node<FileNodeData>) => {
-    pendingPositionsRef.current[node.id] = node.position;
-    if (positionFrameRef.current === null) {
-      positionFrameRef.current = requestAnimationFrame(commitPendingPositions);
-    }
-  }, [commitPendingPositions]);
-  const handleNodeDragStop = useCallback((_event: React.MouseEvent, node: Node<FileNodeData>) => {
-    pendingPositionsRef.current[node.id] = node.position;
-    if (positionFrameRef.current !== null) cancelAnimationFrame(positionFrameRef.current);
-    commitPendingPositions();
-  }, [commitPendingPositions]);
-  useEffect(() => () => {
-    if (positionFrameRef.current !== null) cancelAnimationFrame(positionFrameRef.current);
+  }, [laidOutGraph.nodes]);
+  const handleNodesChange = useCallback((changes: NodeChange[]) => {
+    setInteractiveNodes((current) => applyNodeChanges(changes, current));
   }, []);
   const handleEdgeClick = useCallback((_event: React.MouseEvent, edge: Edge) => {
     setSelectedFlow((edge.data?.flow as DataFlow | undefined) ?? null);
@@ -319,8 +311,7 @@ export default function GraphCanvas({ nodes, edges, mode, onNodeClick, activeFea
         edges={animatedEdges}
         nodeTypes={nodeTypes}
         onNodeClick={handleNodeClick}
-        onNodeDrag={handleNodeDrag}
-        onNodeDragStop={handleNodeDragStop}
+        onNodesChange={handleNodesChange}
         onEdgeClick={handleEdgeClick}
         onInit={(instance) => { flowRef.current = instance; }}
         fitView
