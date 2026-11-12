@@ -35,6 +35,8 @@ export default function GraphCanvas({ nodes, edges, mode, onNodeClick, activeFea
   const [manualPositions, setManualPositions] = useState<Record<string, { x: number; y: number }>>({});
   const [selectedFlow, setSelectedFlow] = useState<DataFlow | null>(null);
   const flowRef = useRef<ReactFlowInstance | null>(null);
+  const pendingPositionsRef = useRef<Record<string, { x: number; y: number }>>({});
+  const positionFrameRef = useRef<number | null>(null);
   const isTreeView = mode === "tree";
 
   const fileExtensions = useMemo(
@@ -99,18 +101,24 @@ export default function GraphCanvas({ nodes, edges, mode, onNodeClick, activeFea
     [expandedFolders, isTreeView, laidOutGraph.nodes, manualPositions]
   );
 
-  // Group nodes by depth (y position) so whole "levels" appear together
+  const layoutYByNodeId = useMemo(
+    () => new Map(laidOutGraph.nodes.map((node) => [node.id, node.position.y])),
+    [laidOutGraph.nodes]
+  );
+
+  // Keep the entrance animation tied to the generated layout, not a dragged position.
   const sortedByDepth = useMemo(() => {
-    return [...displayedNodes].sort((a, b) => a.position.y - b.position.y);
-  }, [displayedNodes]);
+    return [...displayedNodes].sort((a, b) => (layoutYByNodeId.get(a.id) ?? 0) - (layoutYByNodeId.get(b.id) ?? 0));
+  }, [displayedNodes, layoutYByNodeId]);
 
   const depthLevels = useMemo(() => {
     const levels: number[] = [];
     sortedByDepth.forEach((n) => {
-      if (!levels.includes(n.position.y)) levels.push(n.position.y);
+      const layoutY = layoutYByNodeId.get(n.id) ?? 0;
+      if (!levels.includes(layoutY)) levels.push(layoutY);
     });
     return levels;
-  }, [sortedByDepth]);
+  }, [layoutYByNodeId, sortedByDepth]);
 
   useEffect(() => {
     if (depthLevels.length === 0) return;
@@ -140,7 +148,7 @@ export default function GraphCanvas({ nodes, edges, mode, onNodeClick, activeFea
   const animatedNodes = useMemo(
     () =>
       sortedByDepth
-        .filter((n) => visibleDepths.has(n.position.y))
+        .filter((n) => visibleDepths.has(layoutYByNodeId.get(n.id) ?? 0))
         .map((n) => ({
           ...n,
           style: {
@@ -150,7 +158,7 @@ export default function GraphCanvas({ nodes, edges, mode, onNodeClick, activeFea
           },
           className: "animate-node-in",
         })),
-    [sortedByDepth, visibleDepths, selectedId]
+    [layoutYByNodeId, sortedByDepth, visibleDepths, selectedId]
   );
 
   const visibleNodeIds = useMemo(
@@ -209,8 +217,25 @@ export default function GraphCanvas({ nodes, edges, mode, onNodeClick, activeFea
     setSelectedFlow(null);
     requestAnimationFrame(() => flowRef.current?.fitView({ padding: 0.25, duration: 300 }));
   }, []);
+  const commitPendingPositions = useCallback(() => {
+    const pending = pendingPositionsRef.current;
+    pendingPositionsRef.current = {};
+    positionFrameRef.current = null;
+    setManualPositions((current) => ({ ...current, ...pending }));
+  }, []);
+  const handleNodeDrag = useCallback((_event: React.MouseEvent, node: Node<FileNodeData>) => {
+    pendingPositionsRef.current[node.id] = node.position;
+    if (positionFrameRef.current === null) {
+      positionFrameRef.current = requestAnimationFrame(commitPendingPositions);
+    }
+  }, [commitPendingPositions]);
   const handleNodeDragStop = useCallback((_event: React.MouseEvent, node: Node<FileNodeData>) => {
-    setManualPositions((current) => ({ ...current, [node.id]: node.position }));
+    pendingPositionsRef.current[node.id] = node.position;
+    if (positionFrameRef.current !== null) cancelAnimationFrame(positionFrameRef.current);
+    commitPendingPositions();
+  }, [commitPendingPositions]);
+  useEffect(() => () => {
+    if (positionFrameRef.current !== null) cancelAnimationFrame(positionFrameRef.current);
   }, []);
   const handleEdgeClick = useCallback((_event: React.MouseEvent, edge: Edge) => {
     setSelectedFlow((edge.data?.flow as DataFlow | undefined) ?? null);
@@ -294,6 +319,7 @@ export default function GraphCanvas({ nodes, edges, mode, onNodeClick, activeFea
         edges={animatedEdges}
         nodeTypes={nodeTypes}
         onNodeClick={handleNodeClick}
+        onNodeDrag={handleNodeDrag}
         onNodeDragStop={handleNodeDragStop}
         onEdgeClick={handleEdgeClick}
         onInit={(instance) => { flowRef.current = instance; }}
