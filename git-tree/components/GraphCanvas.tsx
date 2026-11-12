@@ -1,17 +1,18 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ReactFlow, {
   Background,
   Controls,
   MiniMap,
   type Node,
   type Edge,
+  type ReactFlowInstance,
 } from "reactflow";
 import "reactflow/dist/style.css";
-import { SlidersHorizontal } from "lucide-react";
+import { Maximize2, Move, RotateCcw, SlidersHorizontal, ZoomIn, ZoomOut } from "lucide-react";
 import FileNode from "./FileNode";
-import type { FileNodeData } from "@/types";
+import type { DataFlow, FileNodeData } from "@/types";
 import { layoutGraph } from "@/lib/layoutGraph";
 import { dependencyFeatureLabels, type DependencyFeature } from "@/lib/dependencyFeatures";
 
@@ -32,6 +33,9 @@ export default function GraphCanvas({ nodes, edges, mode, onNodeClick, activeFea
   const [visibleCount, setVisibleCount] = useState(0);
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
   const [hiddenExtensions, setHiddenExtensions] = useState<Set<string>>(new Set());
+  const [manualPositions, setManualPositions] = useState<Record<string, { x: number; y: number }>>({});
+  const [selectedFlow, setSelectedFlow] = useState<DataFlow | null>(null);
+  const flowRef = useRef<ReactFlowInstance | null>(null);
   const isTreeView = mode === "tree";
 
   const fileExtensions = useMemo(
@@ -87,12 +91,13 @@ export default function GraphCanvas({ nodes, edges, mode, onNodeClick, activeFea
   const displayedNodes = useMemo(
     () => laidOutGraph.nodes.map((node) => ({
       ...node,
+      position: manualPositions[node.id] ?? node.position,
       data: {
         ...node.data,
         expanded: isTreeView && expandedFolders.has(node.id),
       },
     })),
-    [expandedFolders, isTreeView, laidOutGraph.nodes]
+    [expandedFolders, isTreeView, laidOutGraph.nodes, manualPositions]
   );
 
   // Group nodes by depth (y position) so whole "levels" appear together
@@ -109,17 +114,23 @@ export default function GraphCanvas({ nodes, edges, mode, onNodeClick, activeFea
   }, [sortedByDepth]);
 
   useEffect(() => {
-    setVisibleCount(0);
     if (depthLevels.length === 0) return;
 
     let level = 0;
-    const interval = setInterval(() => {
-      level += 1;
-      setVisibleCount(level);
-      if (level >= depthLevels.length) clearInterval(interval);
-    }, REVEAL_STEP_MS);
+    let interval: ReturnType<typeof setInterval> | undefined;
+    const start = setTimeout(() => {
+      setVisibleCount(0);
+      interval = setInterval(() => {
+        level += 1;
+        setVisibleCount(level);
+        if (level >= depthLevels.length && interval) clearInterval(interval);
+      }, REVEAL_STEP_MS);
+    }, 0);
 
-    return () => clearInterval(interval);
+    return () => {
+      clearTimeout(start);
+      if (interval) clearInterval(interval);
+    };
   }, [depthLevels]);
 
   const visibleDepths = useMemo(
@@ -152,8 +163,19 @@ export default function GraphCanvas({ nodes, edges, mode, onNodeClick, activeFea
     () =>
       laidOutGraph.edges
         .filter((e) => visibleNodeIds.has(e.source) && visibleNodeIds.has(e.target))
-        .map((e) => ({ ...e, className: "animate-edge-in" })),
-    [laidOutGraph.edges, visibleNodeIds]
+        .map((e) => {
+          const flow = e.data?.flow as DataFlow | undefined;
+          return {
+            ...e,
+            className: "animate-edge-in",
+            label: !isTreeView && flow ? flow.format : undefined,
+            labelStyle: { fill: "#475569", fontSize: 10, fontWeight: 600 },
+            labelBgStyle: { fill: "#ffffff", fillOpacity: 0.9 },
+            labelBgPadding: [4, 2] as [number, number],
+            labelBgBorderRadius: 4,
+          };
+        }),
+    [isTreeView, laidOutGraph.edges, visibleNodeIds]
   );
 
   const handleNodeClick = useCallback(
@@ -182,6 +204,17 @@ export default function GraphCanvas({ nodes, edges, mode, onNodeClick, activeFea
       else next.add(extension);
       return next;
     });
+  }, []);
+  const resetLayout = useCallback(() => {
+    setManualPositions({});
+    setSelectedFlow(null);
+    requestAnimationFrame(() => flowRef.current?.fitView({ padding: 0.25, duration: 300 }));
+  }, []);
+  const handleNodeDragStop = useCallback((_event: React.MouseEvent, node: Node<FileNodeData>) => {
+    setManualPositions((current) => ({ ...current, [node.id]: node.position }));
+  }, []);
+  const handleEdgeClick = useCallback((_event: React.MouseEvent, edge: Edge) => {
+    setSelectedFlow((edge.data?.flow as DataFlow | undefined) ?? null);
   }, []);
 
   const visibleExtensionCount = fileExtensions.filter((extension) => !hiddenExtensions.has(extension)).length;
@@ -243,13 +276,28 @@ export default function GraphCanvas({ nodes, edges, mode, onNodeClick, activeFea
             ))}
           </div>
         )}
+        <div className="mt-2 flex gap-1 border-t border-slate-200 pt-2 dark:border-white/10">
+          <button type="button" onClick={() => flowRef.current?.zoomIn({ duration: 200 })} aria-label="Zoom in" title="Zoom in" className="rounded-md bg-slate-100 p-1.5 text-slate-700 hover:bg-slate-200 dark:bg-white/10 dark:text-slate-200"><ZoomIn size={14} /></button>
+          <button type="button" onClick={() => flowRef.current?.zoomOut({ duration: 200 })} aria-label="Zoom out" title="Zoom out" className="rounded-md bg-slate-100 p-1.5 text-slate-700 hover:bg-slate-200 dark:bg-white/10 dark:text-slate-200"><ZoomOut size={14} /></button>
+          <button type="button" onClick={() => flowRef.current?.fitView({ padding: 0.25, duration: 300 })} aria-label="Fit graph to view" title="Fit graph to view" className="rounded-md bg-slate-100 p-1.5 text-slate-700 hover:bg-slate-200 dark:bg-white/10 dark:text-slate-200"><Maximize2 size={14} /></button>
+          <button type="button" onClick={resetLayout} aria-label="Reset node layout" title="Reset node layout" className="rounded-md bg-slate-100 p-1.5 text-slate-700 hover:bg-slate-200 dark:bg-white/10 dark:text-slate-200"><RotateCcw size={14} /></button>
+          <span className="ml-1 inline-flex items-center gap-1 text-[10px] text-slate-500 dark:text-slate-400"><Move size={12} /> Drag nodes to arrange them</span>
+        </div>
       </div>
+      {selectedFlow && (
+        <div className="absolute bottom-4 left-4 z-10 max-w-sm rounded-xl border border-indigo-200 bg-white/95 p-3 text-xs shadow-lg backdrop-blur dark:border-indigo-300/20 dark:bg-slate-900/95">
+          <div className="flex items-start justify-between gap-3"><div><p className="font-semibold text-indigo-700 dark:text-indigo-300">{selectedFlow.format}</p><p className="mt-1 text-slate-600 dark:text-slate-300">{selectedFlow.detail}</p><p className="mt-2 text-[10px] uppercase tracking-wide text-slate-400">{selectedFlow.transport} · {selectedFlow.confidence}</p></div><button type="button" onClick={() => setSelectedFlow(null)} aria-label="Close flow details" className="text-slate-400 hover:text-slate-700 dark:hover:text-white">×</button></div>
+        </div>
+      )}
       <ReactFlow
         key={`${mode}:${filterKey}`}
         nodes={animatedNodes}
         edges={animatedEdges}
         nodeTypes={nodeTypes}
         onNodeClick={handleNodeClick}
+        onNodeDragStop={handleNodeDragStop}
+        onEdgeClick={handleEdgeClick}
+        onInit={(instance) => { flowRef.current = instance; }}
         fitView
         fitViewOptions={{ padding: 0.25 }}
         minZoom={0.1}

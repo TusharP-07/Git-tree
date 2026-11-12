@@ -22,4 +22,12 @@ export interface SummaryResponse {
 export interface DependencyEdge {
   source: string;
   target: string;
+  flow?: DataFlow;
+}
+
+export interface DataFlow {
+  transport: "module" | "http" | "database" | "cache" | "auth" | "ai";
+  format: string;
+  detail: string;
+  confidence: "inferred";
 }

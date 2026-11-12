@@ -10,7 +10,7 @@ import Navbar from "@/components/Navbar";
 import SidePanel from "@/components/SidePanel";
 import { buildTreeGraph } from "@/lib/buildTree";
 import { layoutGraph } from "@/lib/layoutGraph";
-import type { FileNodeData, GitTreeItem } from "@/types";
+import type { DataFlow, FileNodeData, GitTreeItem } from "@/types";
 import type { DependencyFeature } from "@/lib/dependencyFeatures";
 
 interface TreeResponse {
@@ -20,7 +20,7 @@ interface TreeResponse {
 
 interface DependencyResponse {
   nodes: string[];
-  edges: { source: string; target: string }[];
+  edges: { source: string; target: string; flow?: DataFlow }[];
   treeTruncated: boolean;
   totalSourceFiles: number;
   analyzedFiles: number;
@@ -87,6 +87,7 @@ export default function GraphPage() {
           id: `${edge.source}->${edge.target}`,
           source: edge.source,
           target: edge.target,
+          data: { flow: edge.flow },
           type: "smoothstep",
           animated: true,
         }));

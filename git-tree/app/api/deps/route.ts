@@ -6,6 +6,7 @@ import { isValidRepository } from "@/lib/validation";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { getRateLimitIdentifier } from "@/lib/request-identity";
 import { classifyDependencyFeature } from "@/lib/dependencyFeatures";
+import { inferDataFlow } from "@/lib/inferDataFlow";
 
 const SUPPORTED_EXTENSIONS = ["js", "jsx", "ts", "tsx", "py"];
 const MAX_FILES_TO_PARSE = 60;
@@ -77,7 +78,7 @@ export async function GET(request: NextRequest) {
             edges: extractImports(content, extension)
             .map((importPath) => resolveImportPath(file.path, importPath, allPaths, extension === "py"))
             .filter((target): target is string => target !== null)
-            .map((target) => ({ source: file.path, target })),
+            .map((target) => ({ source: file.path, target, flow: inferDataFlow(file.path, target, content) })),
           };
         } catch {
           return { feature: classifyDependencyFeature(file.path, ""), edges: [] };
