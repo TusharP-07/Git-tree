@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ReactFlow, {
   Background,
-  Controls,
   MiniMap,
   type Node,
   type Edge,
@@ -169,8 +168,8 @@ export default function GraphCanvas({ nodes, edges, mode, onNodeClick, activeFea
             ...e,
             className: "animate-edge-in",
             label: !isTreeView && flow ? flow.format : undefined,
-            labelStyle: { fill: "#475569", fontSize: 10, fontWeight: 600 },
-            labelBgStyle: { fill: "#ffffff", fillOpacity: 0.9 },
+            labelStyle: { fill: "#cbd5e1", fontSize: 10, fontWeight: 600 },
+            labelBgStyle: { fill: "#172033", fillOpacity: 0.96 },
             labelBgPadding: [4, 2] as [number, number],
             labelBgBorderRadius: 4,
           };
@@ -285,8 +284,8 @@ export default function GraphCanvas({ nodes, edges, mode, onNodeClick, activeFea
         </div>
       </div>
       {selectedFlow && (
-        <div className="absolute bottom-4 left-4 z-10 max-w-sm rounded-xl border border-indigo-200 bg-white/95 p-3 text-xs shadow-lg backdrop-blur dark:border-indigo-300/20 dark:bg-slate-900/95">
-          <div className="flex items-start justify-between gap-3"><div><p className="font-semibold text-indigo-700 dark:text-indigo-300">{selectedFlow.format}</p><p className="mt-1 text-slate-600 dark:text-slate-300">{selectedFlow.detail}</p><p className="mt-2 text-[10px] uppercase tracking-wide text-slate-400">{selectedFlow.transport} · {selectedFlow.confidence}</p></div><button type="button" onClick={() => setSelectedFlow(null)} aria-label="Close flow details" className="text-slate-400 hover:text-slate-700 dark:hover:text-white">×</button></div>
+        <div className="absolute bottom-4 left-4 z-10 max-w-sm rounded-xl border border-indigo-400/25 bg-[#11172a]/95 p-3 text-xs text-slate-200 shadow-2xl shadow-black/30 backdrop-blur">
+          <div className="flex items-start justify-between gap-3"><div><p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-indigo-300">Dependency format</p><p className="mt-1 font-semibold text-white">{selectedFlow.format}</p><p className="mt-1.5 leading-relaxed text-slate-300">{selectedFlow.detail}</p><p className="mt-2 text-[10px] uppercase tracking-wide text-slate-500">{selectedFlow.transport} · {selectedFlow.confidence}</p></div><button type="button" onClick={() => setSelectedFlow(null)} aria-label="Close flow details" className="rounded p-0.5 text-slate-400 hover:bg-white/10 hover:text-white">×</button></div>
         </div>
       )}
       <ReactFlow
@@ -303,9 +302,9 @@ export default function GraphCanvas({ nodes, edges, mode, onNodeClick, activeFea
         minZoom={0.1}
       >
         <Background color="var(--graph-grid)" gap={20} size={1} />
-        <Controls />
         <MiniMap maskColor="var(--graph-minimap-mask)" />
       </ReactFlow>
     </div>
   );
 }
+
